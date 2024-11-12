@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+
+<main class="p-8">
+  <h1 class="text-3xl font-bold mb-4"><%= ad.name %></h1>
+
+      <!-- Detalhes do anúncio -->
+  <div class="text-center">
+    <p class="text-xl font-semibold"><Strong>Cidade: </Strong><%= ad.city %></p>
+    <p class="text-lg text-gray-800 mt-4"><strong>Desscrição: </strong><%= ad.description %></p>
+  </div>
+  <!-- Mostra todas as fotos do anúncio -->
+  <div class="">
+    <% ad.photos.forEach(photo => { %>
+      <img src="<%= photo %>" alt="<%= ad.name %>" class="imgdetail">
+    <% }) %>
+  </div>
+
+  <a href="/" id="voltar">Voltar</a>
+</main>
