@@ -5,6 +5,8 @@ const path = require('path');
 const Ad = require('../models/Ad');
 const router = express.Router();
 
+
+
 // Configuração das cores para cada cidade
 // Utilize um objeto congelado para prevenir modificações acidentais
 const cityColors = Object.freeze({
@@ -13,6 +15,15 @@ const cityColors = Object.freeze({
     "Taguatinga": "bg-indigo-500",
     "Sobradinho": "bg-green-500"
 });
+
+// para proteger a rota de novo anúncio
+function checkAuth(req, res, next) {
+    if (req.session && req.session.isAuthenticated) {
+    return next();
+    } else {
+     return res.redirect('/login');
+    }
+  }
 
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -46,7 +57,7 @@ const upload = multer({
 });
 
 // Rota GET para exibir o formulário de novo anúncio
-router.get('/new', (req, res) => {
+router.get('/new', checkAuth, (req, res) => {
     try {
         res.render('addAd', { cityColors });
     } catch (error) {
