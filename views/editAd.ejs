@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar Anúncio</title>
+</head>
+<body>
+  <h1>Editar Anúncio</h1>
+  
+  <form action="/ads/<%= ad._id %>/edit" method="POST">
+    <label for="name">Nome:</label>
+    <input type="text" id="name" name="name" value="<%= ad.name %>" required>
+    
+    <label for="description">Descrição:</label>
+    <textarea id="description" name="description" required><%= ad.description %></textarea>
+    
+    <label for="city">Cidade:</label>
+    <input type="text" id="city" name="city" value="<%= ad.city %>" required>
+    
+    <button type="submit">Salvar Alterações</button>
+  </form>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script>
+    // Verifica se a URL contém a mensagem de sucesso e exibe o alerta
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('success')) {
+        alert('Anúncio criado com sucesso!');
+        // Remove a mensagem de sucesso da URL para evitar alertas repetidos
+        window.history.replaceState({}, document.title, "/dashboard");
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Bem-vindo ao Dashboard</h1>
+
+  <!-- Link para adicionar novo anúncio -->
+  <a href="/ads/new">Adicionar Novo Anúncio</a>
+
+  <h2>Seus Anúncios</h2>
+  <% if (ads.length> 0) { %>
+    <ul>
+      <% ads.forEach(ad=> { %>
+        <li>
+          <h3>
+            <%= ad.name %>
+          </h3>
+          <p>
+            <%= ad.description %>
+          </p>
+          <p>
+            <%= ad.city %>
+          </p>
+          <% ad.photos.forEach(photo=> { %>
+            <img src="<%= photo %>" alt="Anúncio" width="100">
+            <% }) %>
+              <p>
+                <a href="/ads/<%= ad._id %>/edit">Editar</a>
+              <form action="/ads/<%= ad._id %>/delete" method="POST" style="display: inline;">
+                <button type="submit"
+                  onclick="return confirm('Tem certeza que deseja excluir este anúncio?')">Excluir</button>
+              </form>
+              </p>
+        </li>
+        <% }) %>
+    </ul>
+    <% } else { %>
+      <p>Você ainda não criou nenhum anúncio.</p>
+      <% } %>
+
+        <a href="/logout">Sair</a>
+</body>
+
+</html>

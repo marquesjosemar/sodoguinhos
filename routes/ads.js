@@ -5,25 +5,17 @@ const path = require('path');
 const Ad = require('../models/Ad');
 const router = express.Router();
 
-
-
-// Configuração das cores para cada cidade
-// Utilize um objeto congelado para prevenir modificações acidentais
-const cityColors = Object.freeze({
-    "Santa Maria": "bg-gray-500",
-    "Ceilândia": "bg-blue-500",
-    "Taguatinga": "bg-indigo-500",
-    "Sobradinho": "bg-green-500"
-});
-
-// para proteger a rota de novo anúncio
-function checkAuth(req, res, next) {
+// Middleware de autenticação
+const checkAuth = (req, res, next) => {
     if (req.session && req.session.isAuthenticated) {
-    return next();
+        return next();
     } else {
-     return res.redirect('/login');
+        return res.redirect('/login');
     }
-  }
+};
+
+
+
 
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -59,12 +51,14 @@ const upload = multer({
 // Rota GET para exibir o formulário de novo anúncio
 router.get('/new', checkAuth, (req, res) => {
     try {
-        res.render('addAd', { cityColors });
+        res.render('newAd');
     } catch (error) {
         console.error('Erro ao renderizar formulário:', error);
         res.status(500).send('Erro ao carregar o formulário');
     }
 });
+
+
 
 // Rota POST para processar o novo anúncio
 router.post('/new', upload.array('photos', 5), async (req, res) => {
@@ -85,17 +79,21 @@ router.post('/new', upload.array('photos', 5), async (req, res) => {
             description: description.trim(),
             city,
             photos,
-            createdAt: new Date()
+            createdAt: new Date(),
+            userId: req.session.user._id // Associa o ID do usuário autenticado ao anúncio
         });
 
         await newAd.save();
-        res.redirect('/');
-
+        
+        // Redireciona para o dashboard com mensagem de sucesso
+        res.redirect('/dashboard?success=true');
+        
     } catch (error) {
         console.error('Erro ao salvar anúncio:', error);
         res.status(500).send('Erro ao salvar o anúncio');
     }
 });
+
 
 
 // Define uma rota GET que aceita um parâmetro de URL chamado 'id'
@@ -110,7 +108,7 @@ router.get('/:id', async (req, res) => {
             return res.status(404).send("Anúncio não encontrado");
         }
         // Se o anúncio for encontrado, renderiza a página 'adDetails' passando o anúncio e 'cityColors' como dados
-        res.render('addetails', { ad, cityColors });
+        res.render('addetails', { ad});
     } catch (error) {
         // Em caso de erro, registra o erro no console e retorna um status 500 com uma mensagem
         console.error("Erro ao buscar o anúncio:", error);
@@ -119,6 +117,63 @@ router.get('/:id', async (req, res) => {
 });
 
 
+
+// Rota para exibir o formulário de edição
+router.get('/:id/edit', async (req, res) => {
+    try {
+      const ad = await Ad.findById(req.params.id);
+      if (!ad || ad.userId.toString() !== req.session.user._id) {
+        return res.status(403).send('Você não tem permissão para editar este anúncio.');
+      }
+      res.render('editAd', { ad });
+    } catch (error) {
+      console.error('Erro ao carregar o anúncio para edição:', error);
+      res.status(500).send('Erro ao carregar o anúncio.');
+    }
+  });
+  
+  // Rota para processar a edição
+  router.post('/:id/edit', async (req, res) => {
+    try {
+      const { name, description, city } = req.body;
+  
+      const ad = await Ad.findById(req.params.id);
+      if (!ad || ad.userId.toString() !== req.session.user._id) {
+        return res.status(403).send('Você não tem permissão para editar este anúncio.');
+      }
+  
+      ad.name = name;
+      ad.description = description;
+      ad.city = city;
+      await ad.save();
+  
+      res.redirect('/dashboard');
+    } catch (error) {
+      console.error('Erro ao salvar alterações do anúncio:', error);
+      res.status(500).send('Erro ao salvar as alterações do anúncio.');
+    }
+  });
+
+  
+
+  // Rota para excluir o anúncio
+router.post('/:id/delete', async (req, res) => {
+    try {
+      const ad = await Ad.findById(req.params.id);
+      if (!ad || ad.userId.toString() !== req.session.user._id) {
+        return res.status(403).send('Você não tem permissão para excluir este anúncio.');
+      }
+  
+      await ad.deleteOne();
+      res.redirect('/dashboard');
+    } catch (error) {
+      console.error('Erro ao excluir o anúncio:', error);
+      res.status(500).send('Erro ao excluir o anúncio.');
+    }
+  });
+
+  
+
+
 // Exportações
 module.exports = router;
-module.exports.cityColors = cityColors;

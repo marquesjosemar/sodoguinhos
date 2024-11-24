@@ -1,8 +1,9 @@
 const express = require('express');
-const bcryptjs = require('bcryptjs');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Ad = require('../models/Ad');
 const router = express.Router();
-
 
 
 // Página de registro
@@ -13,16 +14,16 @@ router.get('/register', (req, res) => {
 // Processa o registro
 router.post('/register', async (req, res) => {
   const { username, password } = req.body;
-  const hashedPassword = await bcryptjs.hash(password, 10);
 
   try {
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-   return res.redirect('/login');
+    await User.registerUser(username, password);
+    res.redirect('/login');
   } catch (error) {
-   return res.redirect('/register'); // Redireciona em caso de erro (como nome de usuário já existente)
+    res.send('Erro ao registrar o usuário: ' + error.message);
   }
 });
+
+
 
 // Página de login
 router.get('/login', (req, res) => {
@@ -31,34 +32,58 @@ router.get('/login', (req, res) => {
 
 // Processa o login
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log("Dados recebidos do formulário:", username, password);
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
 
-  const user = await User.findOne({ username });
-  console.log("Usuário encontrado no banco de dados:", user);
-
-  if (user && await bcryptjs.compare(password, user.password)) {
-    console.log("Usuário autenticado com sucesso");
-    req.session.isAuthenticated = true;
-    console.log("Sessão após autenticação:", req.session);
-   return res.redirect('/ads/new');  // Redireciona para a página de anúncio
-  } else {
-    console.log("Falha na autenticação: usuário não encontrado ou senha incorreta");
-    return res.redirect('/login');  // Redireciona em caso de falha no login
+    if (user && await bcrypt.compare(password, user.password)) {
+      req.session.isAuthenticated = true;
+      req.session.user = user; // Salva o usuário na sessão
+      return res.redirect('/dashboard'); // Redireciona para o dashboard
+    } else {
+      return res.redirect('/login'); // Volta ao login se falhar
+    }
+  } catch (error) {
+    console.error("Erro no login:", error);
+    res.status(500).send("Erro interno do servidor");
   }
-
-  req.session.isAuthenticated = true; // Define o usuário como autenticado
-   return res.redirect('/ads/new'); // Redireciona para o formulário de novo anúncio
 });
+
+
+
+// Middleware de autenticação
+function ensureAuthenticated(req, res, next) {
+  if (req.session.isAuthenticated) {
+    return next();
+  }
+  res.redirect('/login');
+}
+
+
+
+// Rota para exibir o dashboard do usuário (protegida por autenticação)
+router.get('/dashboard', ensureAuthenticated, async (req, res) => {
+  try {
+    // Busca os anúncios do usuário autenticado
+    const ads = await Ad.find({ userId: req.session.user._id });
+    res.render('dashboard', { ads });
+  } catch (error) {
+    console.error('Erro ao carregar o dashboard:', error);
+    res.status(500).send('Erro ao carregar o dashboard');
+  }
+});
+
+
 
 // Logout
 router.get('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {
+      console.log("Erro ao destruir a sessão:", err);
       return res.redirect('/');
     }
-    res.clearCookie('connect.sid');
-    res.redirect('/');
+    res.clearCookie('connect.sid'); // Limpa o cookie da sessão
+    res.redirect('/'); // Redireciona para a página inicial
   });
 });
 
